@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
+import { catchError, delay, tap } from 'rxjs/operators';
 import { Ticket } from '../interfaces/ticket.interface';
 import { User } from '../interfaces/user.interface';
+import { assoc, assocPath } from 'ramda';
 
 /**
  * This service acts as a mock back-end.
@@ -30,12 +31,17 @@ export class BackendService {
         }
     ];
 
-    public storedUsers: User[] = [{ id: 111, name: 'Victor' }];
+    public storedUsers: User[] = [{ id: 111, name: 'Victor' }, {id: 112, name: 'Alexandre'}];
 
     private lastId: number = 1;
 
     private findUserById = id => this.storedUsers.find((user: User) => user.id === +id);
     private findTicketById = id => this.storedTickets.find((ticket: Ticket) => ticket.id === +id);
+    private updateTicket = id => (property, value) => {
+        const index = this.storedTickets.findIndex((ticket: Ticket) => ticket.id === +id);
+        this.storedTickets = assocPath([index], assoc(property, value, this.storedTickets[index]), this.storedTickets) ;
+        return this.storedTickets[index];
+    }
 
     public tickets(): Observable<Ticket[]> {
         return of(this.storedTickets).pipe(delay(randomDelay()));
@@ -61,9 +67,10 @@ export class BackendService {
             description: payload.description
         };
 
+        this.storedTickets = [...this.storedTickets, newTicket];
+
         return of(newTicket).pipe(
-            delay(randomDelay()),
-            tap((ticket: Ticket) => this.storedTickets.push(ticket))
+            delay(randomDelay())
         );
     }
 
@@ -72,26 +79,19 @@ export class BackendService {
         const foundTicket = this.findTicketById(+ticketId);
 
         if (foundTicket && user) {
-            return of(foundTicket).pipe(
-                delay(randomDelay()),
-                tap((ticket: Ticket) => {
-                    ticket.assigneeId = +userId;
-                })
+            return of(this.updateTicket(+ticketId)('assigneeId', +userId)).pipe(
+                delay(randomDelay())
             );
         }
 
         return throwError(new Error('ticket or user not found'));
     }
 
-    public complete(ticketId: number, completed: boolean): Observable<Ticket> {
+    public complete(ticketId: number): Observable<Ticket> {
         const foundTicket = this.findTicketById(+ticketId);
-
         if (foundTicket) {
-            return of(foundTicket).pipe(
-                delay(randomDelay()),
-                tap((ticket: Ticket) => {
-                    ticket.completed = true;
-                })
+            return of(this.updateTicket(+ticketId)('completed', true)).pipe(
+                delay(randomDelay())
             );
         }
 

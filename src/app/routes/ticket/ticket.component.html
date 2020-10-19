@@ -1,0 +1,17 @@
+<mat-card *ngIf="(ticket$ | async) as ticketObject">
+    <mat-card-title> Ticket n. {{ ticketObject.id }} </mat-card-title>
+    <mat-card-subtitle *ngIf="(user$ | async) as userObject" >Assigned to {{ userObject.name }}</mat-card-subtitle>
+    <mat-spinner diameter="20" *ngIf="loadingUser$ | async"></mat-spinner>
+    <mat-card-content id="description">{{ ticketObject.description }}</mat-card-content>
+    <mat-card-actions>
+        <mat-form-field>
+            <mat-label>Assign</mat-label>
+            <mat-select [value]="ticketObject.assigneeId" (selectionChange)="assignTicket(ticketObject.id, $event.value)" matInput>
+                <mat-option *ngFor="let user of users$ | async" [value]="user.id">{{ user.name }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <mat-checkbox (click)="completeTicket(ticketObject)" [ngModel]="ticketObject.completed" class="example-margin">{{ ticketObject.completed ? 'Open ticket' : 'Close ticket' }}</mat-checkbox>
+        <a [routerLink]="['/tickets']" routerLinkActive="active" mat-button >Go back</a>
+    </mat-card-actions>
+</mat-card>
+<mat-spinner class="margin-20" *ngIf="loadingTicket$ | async"></mat-spinner>
